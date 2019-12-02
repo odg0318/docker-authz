@@ -1,0 +1,25 @@
+FROM golang:1.12 AS builder
+
+ENV GO111MODULE=on
+
+WORKDIR /docker-authz
+
+COPY go.mod .
+COPY go.sum .
+
+RUN apk -U add git \
+    && go mod download \
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+
+
+FROM docker:dind
+
+RUN mkdir /docker-authz
+
+COPY --from=builder /docker-authz/docker-authz /docker-authz/docker-authz
+COPY entrypoint.sh /docker-authz/entrypoint.sh
+
+ENTRYPOINT ["/docker-authz/entrypoint.sh"]
